@@ -5,6 +5,9 @@ import {
   SlashCommandBuilder,
   SlashCommandUserOption,
 } from 'discord.js';
+import { database } from '../../db/index';
+import { serversTable } from '../../db/schema';
+import { and, eq } from 'drizzle-orm';
 
 const command = 'earthquake';
 const description = 'Send earthquake updates to configured channel.';
@@ -52,6 +55,26 @@ export async function execute(
   }
 
   const channelId = interaction.channelId;
+  const guildId = interaction.guildId;
 
-  await interaction.reply(`Channel ID: ${channelId} <#${channelId}>`);
+  const result = await database
+    .select()
+    .from(serversTable)
+    .where(
+      and(
+        eq(serversTable.server_id, guildId),
+        eq(serversTable.channel_id, channelId)
+      )
+    );
+
+  const t = result[0];
+
+  await interaction.reply(`${t.id} | ${t.channel_id} | ${t.server_id}`);
+
+  // await database.insert(serversTable).values({
+  //   server_id: guildId,
+  //   channel_id: channelId,
+  // });
+
+  // await interaction.reply(`Channel ID: ${channelId} <#${channelId}>`);
 }
