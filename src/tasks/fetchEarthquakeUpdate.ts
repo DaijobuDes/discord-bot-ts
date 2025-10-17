@@ -34,31 +34,62 @@ export async function getEarthquakeUpdates(client: Client) {
         }
       );
 
-      for (const server of servers) {
-        const channel = await client.channels.fetch(server.channel_id);
+      const $ = cheerio.load(data);
 
-        if (channel instanceof TextChannel) {
-          const $ = cheerio.load(data);
-          try {
-            tempTimestamp = await scrape_data($, channel);
-          } catch (e) {
-            log.error(
-              `Something went wrong sending embed to channel ID: ${channel.id} has been deleted.`
-            );
+      const firstRow = $(
+        'div.auto-style94 > table:nth-child(4) > tbody:nth-child(1) > tr:nth-child(2)'
+      );
+
+      const tds = firstRow.find('td');
+      const timestamp = $(tds[0]).text().trim();
+
+      // Check if current data is same with previous data to prevent sending duplicates
+      if (timestamp == previousTime) {
+        log.debug('Data is the same previously. Skipping');
+      } else {
+        const latitude = $(tds[1]).text().trim();
+        const longitude = $(tds[2]).text().trim();
+        const depth = $(tds[3]).text().trim();
+        const magnitude = Number.parseFloat($(tds[4]).text().trim());
+        const location = $(tds[5]).text().replace(/\s+/g, ' ').trim();
+
+        const embed = await generate_embed(
+          timestamp,
+          latitude,
+          longitude,
+          depth,
+          magnitude,
+          location
+        );
+
+        for (const server of servers) {
+          const channel = await client.channels.fetch(server.channel_id);
+
+          if (channel instanceof TextChannel) {
+            try {
+              await channel.send({ embeds: [embed] });
+              log.debug(
+                `Earthquake updates sent to channel ID: ${channel.id} | ${channel.name}`
+              );
+            } catch (e) {
+              log.error(
+                `Something went wrong sending embed to channel ID: ${channel.id} has been deleted.`
+              );
+              await delete_subscription(server);
+            }
+          } else {
             await delete_subscription(server);
           }
-        } else {
-          await delete_subscription(server);
         }
+
+        if (tempTimestamp != null) {
+          previousTime = tempTimestamp;
+        }
+
+        failedTaskPreviously = false;
+
+        log.success('Finished running task.');
       }
-
-      if (tempTimestamp != null) {
-        previousTime = tempTimestamp;
-      }
-
-      failedTaskPreviously = false;
-
-      log.success('Finished running task.');
     } catch (e) {
       if (!failedTaskPreviously) {
         const servers = await database.select().from(serversTable);
@@ -79,29 +110,14 @@ export async function getEarthquakeUpdates(client: Client) {
   }
 }
 
-async function scrape_data(
-  $: cheerio.CheerioAPI,
-  channel: TextChannel
-): Promise<string | null> {
-  const firstRow = $(
-    'div.auto-style94 > table:nth-child(4) > tbody:nth-child(1) > tr:nth-child(2)'
-  );
-
-  const tds = firstRow.find('td');
-  const timestamp = $(tds[0]).text().trim();
-
-  // Check if current data is same with previous data to prevent sending duplicates
-  if (timestamp == previousTime) {
-    log.debug('Data is the same previously. Skipping');
-    return null;
-  }
-
-  const latitude = $(tds[1]).text().trim();
-  const longitude = $(tds[2]).text().trim();
-  const depth = $(tds[3]).text().trim();
-  const magnitude = Number.parseFloat($(tds[4]).text().trim());
-  const location = $(tds[5]).text().replace(/\s+/g, ' ').trim();
-
+async function generate_embed(
+  timestamp: string,
+  latitude: string,
+  longitude: string,
+  depth: string,
+  magnitude: number,
+  location: string
+): Promise<EmbedBuilder> {
   let embedColor;
   if (magnitude < 3) {
     embedColor = 0x00b0f4;
@@ -114,7 +130,6 @@ async function scrape_data(
   } else {
     embedColor = 0x000000;
   }
-
   const embed = new EmbedBuilder();
   embed.setTitle('PHIVOLCS Latest Earthquake Information');
   embed.setURL('https://earthquake.phivolcs.dost.gov.ph/');
@@ -164,11 +179,7 @@ async function scrape_data(
   });
   embed.setTimestamp();
 
-  log.debug(
-    `Earthquake updates sent to channel ID: ${channel.id} | ${channel.name}`
-  );
-  await channel.send({ embeds: [embed] });
-  return timestamp;
+  return embed;
 }
 
 async function delete_subscription(server: Server) {
