@@ -8,6 +8,7 @@ import * as cheerio from 'cheerio';
 import { log } from '../logger';
 
 let previousTime = '';
+let tempTimestamp: string | null = null;
 let sleepDuration = 15;
 
 type Server = {
@@ -39,7 +40,7 @@ export async function getEarthquakeUpdates(client: Client) {
         if (channel instanceof TextChannel) {
           const $ = cheerio.load(data);
           try {
-            await scrape_data($, channel);
+            tempTimestamp = await scrape_data($, channel);
           } catch (e) {
             log.error(
               `Something went wrong sending embed to channel ID: ${channel.id} has been deleted.`
@@ -49,6 +50,10 @@ export async function getEarthquakeUpdates(client: Client) {
         } else {
           await delete_subscription(server);
         }
+      }
+
+      if (tempTimestamp != null) {
+        previousTime = tempTimestamp;
       }
 
       failedTaskPreviously = false;
@@ -74,7 +79,10 @@ export async function getEarthquakeUpdates(client: Client) {
   }
 }
 
-async function scrape_data($: cheerio.CheerioAPI, channel: TextChannel) {
+async function scrape_data(
+  $: cheerio.CheerioAPI,
+  channel: TextChannel
+): Promise<string | null> {
   const firstRow = $(
     'div.auto-style94 > table:nth-child(4) > tbody:nth-child(1) > tr:nth-child(2)'
   );
@@ -85,9 +93,8 @@ async function scrape_data($: cheerio.CheerioAPI, channel: TextChannel) {
   // Check if current data is same with previous data to prevent sending duplicates
   if (timestamp == previousTime) {
     log.debug('Data is the same previously. Skipping');
-    return;
+    return null;
   }
-  previousTime = timestamp;
 
   const latitude = $(tds[1]).text().trim();
   const longitude = $(tds[2]).text().trim();
@@ -161,6 +168,7 @@ async function scrape_data($: cheerio.CheerioAPI, channel: TextChannel) {
     `Earthquake updates sent to channel ID: ${channel.id} | ${channel.name}`
   );
   await channel.send({ embeds: [embed] });
+  return timestamp;
 }
 
 async function delete_subscription(server: Server) {
