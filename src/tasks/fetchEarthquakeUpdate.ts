@@ -53,7 +53,9 @@ export async function getEarthquakeUpdates(client: Client) {
         const magnitude = Number.parseFloat($(tds[4]).text().trim());
         const location = $(tds[5]).text().replace(/\s+/g, ' ').trim();
 
-        const embed = await generate_embed(
+        previousTime = timestamp;
+
+        const embed = await generateEmbed(
           timestamp,
           latitude,
           longitude,
@@ -75,10 +77,10 @@ export async function getEarthquakeUpdates(client: Client) {
               log.error(
                 `Something went wrong sending embed to channel ID: ${channel.id} has been deleted.`
               );
-              await delete_subscription(server);
+              await deleteSubscription(server);
             }
           } else {
-            await delete_subscription(server);
+            await deleteSubscription(server);
           }
         }
 
@@ -110,7 +112,7 @@ export async function getEarthquakeUpdates(client: Client) {
   }
 }
 
-async function generate_embed(
+async function generateEmbed(
   timestamp: string,
   latitude: string,
   longitude: string,
@@ -182,7 +184,7 @@ async function generate_embed(
   return embed;
 }
 
-async function delete_subscription(server: Server) {
+async function deleteSubscription(server: Server) {
   await database
     .delete(serversTable)
     .where(
