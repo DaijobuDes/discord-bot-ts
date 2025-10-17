@@ -7,12 +7,13 @@ import {
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
+import { log } from './logger';
 
 dotenv.config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
 
-console.log('Bot is starting...');
+log.info('Bot is starting...');
 
 interface Command {
   data: RESTPostAPIChatInputApplicationCommandsJSONBody;
@@ -49,10 +50,10 @@ for (const folder of commandFolders) {
       );
       if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
-        console.log(`${command.data.name} loaded`);
+        log.debug(`Command name loaded: ${command.data.name}`);
       } else {
-        console.log(
-          `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+        log.warning(
+          `The command at ${filePath} is missing a required "data" or "execute" property.`
         );
       }
     })();
@@ -75,6 +76,7 @@ for (const file of eventFiles) {
     } else {
       client.on(event.name, (...args) => event.execute(...args));
     }
+    log.debug(`Event name loaded: ${event.name}`);
   })();
 }
 

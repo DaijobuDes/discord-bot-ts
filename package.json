@@ -17,10 +17,16 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "register": "ts-node src/register.ts",
+    "refresh-db": "drizzle-kit push",
+    "generate-migrations": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
+    "axios": "^1.12.2",
+    "chalk": "^5.6.2",
+    "cheerio": "^1.1.2",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.6",
