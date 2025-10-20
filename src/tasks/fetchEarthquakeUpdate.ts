@@ -9,7 +9,7 @@ import { log } from '../logger';
 
 let previousTime = '';
 let tempTimestamp: string | null = null;
-let sleepDuration = 15;
+let sleepDuration = 45;
 
 type Server = {
   id: number;
@@ -98,7 +98,7 @@ export async function getEarthquakeUpdates(client: Client) {
         servers.forEach(async server => {
           const channel = await client.channels.fetch(server.channel_id);
           if (channel instanceof TextChannel) {
-            await channel.send('Error fetching data from upstream server.');
+            // await channel.send('Error fetching data from upstream server.');
             log.error('Error fetching data from upstream server.');
           }
         });

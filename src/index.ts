@@ -35,12 +35,13 @@ client.commands = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
+const extension = checkProductionEnv() ? '.js' : '.ts';
 
 for (const folder of commandFolders) {
   const commandsPath = path.join(foldersPath, folder);
   const commandFiles = fs
     .readdirSync(commandsPath)
-    .filter(file => file.endsWith('.ts'));
+    .filter(file => file.endsWith(extension));
 
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
@@ -63,7 +64,7 @@ for (const folder of commandFolders) {
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs
   .readdirSync(eventsPath)
-  .filter(file => file.endsWith('.ts'));
+  .filter(file => file.endsWith(extension));
 
 for (const file of eventFiles) {
   const filePath = path.join(eventsPath, file);
@@ -81,3 +82,10 @@ for (const file of eventFiles) {
 }
 
 client.login(token);
+
+function checkProductionEnv(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  return false;
+}

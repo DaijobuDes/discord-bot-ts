@@ -6,11 +6,11 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.json drizzle.config.ts ./
+COPY src ./src
 
 RUN pnpm install --frozen-lockfile
-
-COPY src ./src
+RUN pnpm tsc
 
 USER node
 
-CMD ["pnpm", "run", "start"]
+CMD ["node", "--trace-warnings", "dist/index.js"]
